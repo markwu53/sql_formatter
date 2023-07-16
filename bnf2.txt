@@ -1,0 +1,359 @@
+create_procedure ::= 
+CREATE (
+    PROCEDURE
+    | PROC
+) qualified_name sp_parameter_list? AS sql_statements;
+
+create_function ::= 
+CREATE (
+    FUNCTION
+    | FUNC
+) qualified_name sp_parameter_list? (RETURNS qualified_item)? AS? sql_statements;
+
+sql_statements ::= 
+sql_statement+;
+
+qualified_name ::= 
+scope_qualified? name;
+
+sp_parameter_list ::= 
+    sp_parameter_list_1
+    | '(' sp_parameter_list_1 ')';
+
+qualified_item ::= 
+scope_qualified? name_or_function;
+
+sql_statement ::= 
+    (
+        (WITH cte (',' cte)*)? (
+            INSERT INTO? qualified_name paren_list_3? (
+                value_clause
+                | query_expression order_by_clause?
+            )
+            | UPDATE table_name as_table_alias? SET update_one update_next* from_clause? where_clause? group_by? having_clause?
+            | DELETE from_clause? where_clause? group_by? having_clause?
+            | query_expression
+            | MERGE table_name as_table_alias? USING one_table_source as_table_alias? ON boolean_expression (WHEN NOT? MATCHED (
+                BY SOURCE
+                | BY TARGET
+            )? (AND boolean_expression)? THEN (
+                INSERT paren_list_3 VALUES paren_list_2
+                | UPDATE SET update_one update_next*
+            ))+
+        )
+        | (
+            DECLARE sql_variable TABLE '(' declare_table_column (',' declare_table_column)* ')'
+            | DECLARE declare_one_var (',' declare_one_var)*
+        )
+        | RETURN expression?
+        | WHILE boolean_expression sql_statement
+        | BREAK
+        | CONTINUE
+        | SET set_one_var (',' set_one_var)*
+        | CREATE TABLE table_or_view_name '(' one_column_full_spec (',' one_column_full_spec)* ')'
+        | CREATE (
+            CLUSTERED
+            | NONCLUSTERED
+        )? INDEX qualified_name ON qualified_name paren_list_1
+        | SET (
+            COUNT
+            | NOCOUNT
+            | IDENTITY_INSERT qualified_item?
+        ) (
+            ON
+            | OFF
+        )
+        | BEGIN TRY sql_statement+ END TRY BEGIN CATCH sql_statement+ END CATCH
+        | BEGIN sql_statement+ END
+        | IF boolean_expression sql_statement (ELSE sql_statement)?
+        | (
+            EXEC
+            | EXECUTE
+        ) expression (exec_one_para (',' exec_one_para)*)?
+        | DROP (
+            TABLE table_or_view_name
+            | VIEW table_or_view_name
+        )
+        | (
+            TRUNCATE
+            | TRUNC
+        ) TABLE qualified_item
+        | RAISERROR function_parameters
+    ) ';'?
+    | ';';
+
+scope_qualified ::= 
+name_or_function qualifier (name_or_function? qualifier)*;
+
+name ::= 
+    bare_name
+    | '@' bare_name
+    | '#' bare_name;
+
+sp_parameter_list_1 ::= 
+sp_parameter (',' sp_parameter)*;
+
+name_or_function ::= 
+name function_parameters?;
+
+cte ::= 
+name paren_list_3? AS query_expression_group;
+
+paren_list_3 ::= 
+'(' expression next_expression* ')';
+
+value_clause ::= 
+VALUES value_one (',' value_one)*;
+
+query_expression ::= 
+query_expression_one ((
+    UNION ALL?
+    | EXCEPT
+    | INTERSECT
+) query_expression_one)*;
+
+order_by_clause ::= 
+ORDER BY order_by_one (',' order_by_one)*;
+
+table_name ::= 
+qualified_name;
+
+as_table_alias ::= 
+AS? table_alias;
+
+update_one ::= 
+qualified_item '=' expression;
+
+update_next ::= 
+',' update_one;
+
+from_clause ::= 
+FROM table_source (',' table_source)*;
+
+where_clause ::= 
+WHERE search_condition;
+
+group_by ::= 
+    GROUP BY expression next_expression*
+    | GROUP BY GROUPING SETS '(' '(' expression next_expression* ')' ')';
+
+having_clause ::= 
+HAVING search_condition;
+
+one_table_source ::= 
+(
+    qualified_item
+    | query_expression_group
+) as_table_alias? paren_list_2? (WITH paren_list_1)? ((
+    PIVOT
+    | UNPIVOT
+) '(' qualified_item FOR in_form ')' as_table_alias?)?;
+
+boolean_expression ::= 
+boolean_item next_boolean_item+?;
+
+paren_list_2 ::= 
+'(' expression next_expression* ')';
+
+sql_variable ::= 
+'@' qualified_item;
+
+declare_table_column ::= 
+qualified_item qualified_item qualified_item*;
+
+declare_one_var ::= 
+sql_variable data_type variable_init?;
+
+expression ::= 
+expression_item_1 ((
+    '+'
+    | '-'
+    | '*'
+    | '/'
+    | '%'
+) expression_item_1)*;
+
+set_one_var ::= 
+sql_variable variable_init;
+
+table_or_view_name ::= 
+qualified_name;
+
+one_column_full_spec ::= 
+(
+    NOT? NULL
+    | qualified_item
+)+;
+
+paren_list_1 ::= 
+'(' expression next_expression* ')';
+
+exec_one_para ::= 
+(sql_variable '=')? expression;
+
+function_parameters ::= 
+'(' (parameter (',' parameter)*)? ')';
+
+qualifier ::= 
+'.';
+
+bare_name ::= 
+    token_identifier
+    | token_quoted
+    | token_bracketed;
+
+sp_parameter ::= 
+sql_variable data_type variable_init?;
+
+query_expression_group ::= 
+'(' query_expression ')';
+
+next_expression ::= 
+',' expression;
+
+value_one ::= 
+paren_list_1;
+
+query_expression_one ::= 
+    SELECT (
+        ALL
+        | DISTINCT
+    )? (TOP expression PERCENT?)? select_one_column_1 (',' select_one_column_1)* (INTO qualified_item)? from_clause? where_clause? group_by? having_clause? order_by_clause? FOR XML (
+        (
+            RAW
+            | AUTO
+        ) xml_element? xml_option?
+        | PATH xml_element? xml_option?
+    )? (OPTION '(' option_one (',' option_one)* ')')?
+    | value_clause
+    | query_expression_group;
+
+order_by_one ::= 
+expression (
+    ASC
+    | DESC
+)?;
+
+table_alias ::= 
+qualified_name;
+
+table_source ::= 
+one_table_source (
+    (
+        INNER
+        | LEFT
+        | RIGHT
+        | FULL
+    )? OUTER? JOIN one_table_source ON search_condition
+    | (
+        CROSS
+        | OUTER
+    ) APPLY one_table_source
+)+?;
+
+search_condition ::= 
+boolean_item next_boolean_item+?;
+
+in_form ::= 
+expression NOT? IN (
+    '(' expression next_expression* ')'
+    | query_expression_group
+);
+
+boolean_item ::= 
+NOT* (
+    '(' boolean_expression ')'
+    | expression (
+        '>' '='
+        | '>'
+        | '<' '='
+        | '='
+        | '<' '>'
+        | '<'
+        | '!' '='
+    ) expression
+    | expression NOT? LIKE expression
+    | in_form
+    | expression IS NOT? NULL
+    | expression NOT? BETWEEN expression AND expression
+    | NOT? EXISTS expression
+);
+
+next_boolean_item ::= 
+(
+    AND
+    | OR
+) boolean_item;
+
+data_type ::= 
+qualified_item;
+
+variable_init ::= 
+'=' expression;
+
+expression_item_1 ::= 
+(
+    '+'
+    | '-'
+)? (
+    CAST '(' expression AS qualified_item ')'
+    | CASE (WHEN boolean_expression THEN expression)+ case_else_form? END
+    | CASE expression (WHEN expression THEN expression)+ case_else_form? END
+    | IIF '(' boolean_expression ',' expression ',' expression ')'
+    | N token_string
+    | COUNT '(' DISTINCT? (
+        '*'
+        | expression
+    ) ')'
+    | qualified_item
+    | query_expression_group
+    | '(' expression ')'
+    | (
+        token_number ('.' token_number?)?
+        | '.' token_number
+    )
+    | token_string
+    | '?'
+    | sql_variable
+) (OVER '(' (PARTITION BY expression next_expression*)? order_by_clause? ((
+    ROWS
+    | RANGE
+) BETWEEN range_from_to AND range_from_to)? ')')?;
+
+parameter ::= 
+DISTINCT? expression;
+
+select_one_column_1 ::= 
+(sql_variable '=')? (
+    '*'
+    | token_identifier '.' '*'
+    | expression (AS? column_alias)?
+    | column_alias '=' expression
+);
+
+xml_element ::= 
+'(' token_string ')';
+
+xml_option ::= 
+',' ELEMENTS;
+
+option_one ::= 
+expression+;
+
+case_else_form ::= 
+ELSE expression;
+
+range_from_to ::= 
+    CURRENT ROW
+    | (
+        UNBOUNDED
+        | token_number
+    ) (
+        FOLLOWING
+        | PRECEDING
+    );
+
+column_alias ::= 
+    qualified_item
+    | token_string;
+

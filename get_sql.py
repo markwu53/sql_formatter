@@ -2,19 +2,10 @@ import pymssql
 
 def run():
     connectionParams = {
-        "server": r"SQLPEDW\DBP",
-        "user": r"mmi\t162880",
-        #"password": "Wy@nd0tDublin",
-        #"password": "Y0ngDub1in",
-        #"password": "SummerPi@no",
-        #"password": "WinterV!0lin",
-        #"password": "SpringT0w#r",
-        #"password": "Winter$20@3",
-        #"password": "Winter$@023",
-        #"password": "Dublin$!688",
-        "password": "NewYork$06@@",
-        #"database": "EDW",
-        "database": "PK_Stat_Model",
+        "server": r"XXXXXXXX",
+        "user": r"XXXXXXXX",
+        "password": "XXXXXXXX",
+        "database": "XXXXXXXX",
         "autocommit": True,
     }
 
@@ -38,7 +29,6 @@ order by length desc
     cursor.execute(sql_command)
     results = cursor.fetchall()
     for name, length, defn in results:
-        #if name != "SP_PLSP_IM_LOSS_INS_STAT_RISK": continue
         print(name, length)
         fd = open(f"pk_function/{name}.sql", "w", encoding="utf-8")
         fd.write(defn)

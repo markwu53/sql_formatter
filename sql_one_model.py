@@ -322,6 +322,7 @@ concat_newline = concat_by("\n")
 concat_double_line = concat_by("\n\n")
 default_proc = concat
 
+#default proc functions - generated from bnf
 {a}
 
 #user defined proc functions
@@ -395,17 +396,17 @@ comments = proc(more(token_comment), proc_comments)
 def symbol(s):
     return sequential(optional(comments), symbol_bare(s))
 
-#rule_functions
+#rule_functions - generated from bnf
 {b}
 
 def run():
-    text = open("sample/sample9.sql").read()
+    text = open("sample/sample2.sql").read()
     tokens = lexer(text)
     #tokens = [t for t in tokens if t[0] not in ["space", "block_comment", "line_comment"]]
     tokens = [t for t in tokens if t[0] not in ["space"]]
     #for t in tokens: print(t)
     parser_data["tokens"] = tokens
-    p, d = sql_statements(0)
+    p, d = sql_file(0)
     print(d[0][1])
     #for x in enumerate(d): print(x)
 
